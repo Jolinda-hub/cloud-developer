@@ -1,27 +1,42 @@
 import * as AWS from 'aws-sdk'
 const AWSXRay = require('aws-xray-sdk')
 import { DocumentClient } from 'aws-sdk/clients/dynamodb'
-// import { createLogger } from '../utils/logger'
+import { createLogger } from '../utils/logger'
 // import { TodoUpdate } from '../models/TodoUpdate';
 
 import { TodoItem } from "../models/TodoItem"
 
 const XAWS = AWSXRay.captureAWS(AWS)
 
-// const logger = createLogger('TodosAccess')
+const logger = createLogger('TodosAccess')
 const todosTable = process.env.TODOS_TABLE
 const index = process.env.TODOS_CREATED_AT_INDEX
 const docClient: DocumentClient = createDynamoDBClient()
 
-// // TODO: Implement the dataLayer logic
+// TODO: Implement the dataLayer logic
 export async function createTodo(todo: TodoItem): Promise<TodoItem> {
-    await docClient.put({
-      TableName: todosTable,
-      Item: todo
-    }).promise()
+  await docClient.put({
+    TableName: todosTable,
+    Item: todo
+  })
+  .promise()
 
-    return todo
-  }
+  logger.info('Todo item created')
+
+  return todo  as TodoItem
+}
+
+// export async function createTodoItem(todoItem: TodoItem): Promise<TodoItem> {
+
+//   const result = await docClient.put({
+//     TableName: todosTable,
+//     Item: todoItem
+//   }).promise()
+
+//   logger.info('Todo item created', result)
+
+//   return todoItem as TodoItem
+// }
 
 export async function getAllTodosByUser(userId: string ): Promise<TodoItem[]> {
   const result = await docClient.query({
@@ -66,18 +81,19 @@ export async function updateTodo(todo: TodoItem ): Promise<TodoItem> {
         ':attachmentUrl': todo.attachmentUrl
     }
   }).promise()
-
+  logger.info('Todo item updated', result)
   return result.Attributes as TodoItem
 }
 
 export async function deleteTodoItem(todoId: string, userId: string): Promise<string> {
-    await docClient.delete({
+    const result = await docClient.delete({
     TableName: todosTable,
     Key: {
       todoId,
       userId
     }
   }).promise()
+  logger.info('Todo item deleted', result)
   return todoId as string
 }
 
