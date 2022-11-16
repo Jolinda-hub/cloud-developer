@@ -25,13 +25,13 @@ provider:
   environment:
     TODOS_TABLE: Todos-${self:provider.stage}
     TODOS_CREATED_AT_INDEX: CreatedAtIndex
-    ATTACHMENT_S3_BUCKET: serverless-c4-todo-images-ab54j-${self:provider.stage}
+    ATTACHMENT_S3_BUCKET: serverless-c4-todo-images-ab04j-${self:provider.stage}
     SIGNED_URL_EXPIRATION: 300
     AUTH_0_SECRET_ID: X3qZ-pzfxq13HmJuG-iJQGnednAOgOraXCsyCCicqHgQBebLutalTm4_ManW1Pxn
-
-  #logs:
+      
+  logs:
     # Enable API Gateway logs
-    #restApi: true
+    ApiGatewayRestApi: true
 
   iamRoleStatements:
     - Effect: Allow
@@ -96,12 +96,17 @@ functions:
           cors: true
           request:
             schemas:
-              application/json: ${file(models/create-todo-model.json)}
+              application/json: ${file(models/update-todo-model.json)}
     iamRoleStatements:
       - Effect: Allow
         Action:
-          - - dynamodb:UpdateItem
+          - dynamodb:UpdateItem
+          - dynamodb:Query
         Resource: arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.TODOS_TABLE}
+      - Effect: Allow
+        Action:
+          - dynamodb:Query
+        Resource: arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.TODOS_TABLE}/index/${self:provider.environment.TODOS_CREATED_AT_INDEX}
 
   # TODO: Configure this function
   # Provide property for setting up CORS, Authorizer, iamRoleStatements
@@ -165,6 +170,16 @@ resources:
         RestApiId:
           Ref: ApiGatewayRestApi
 
+    GatewayResponseDefault5XX:
+      Type: AWS::ApiGateway::GatewayResponse
+      Properties:
+        ResponseParameters:
+          gatewayresponse.header.Access-Control-Allow-Origin: "'*'"
+          gatewayresponse.header.Access-Control-Allow-Headers: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+          gatewayresponse.header.Access-Control-Allow-Methods: "'GET,OPTIONS,POST,DELETE,PATCH,PUT'"
+        ResponseType: DEFAULT_5XX
+        RestApiId:
+          Ref: ApiGatewayRestApi
     
     # TODO: Create a DynamoDB table with local secondary index and a composite key
     TodosTable:
